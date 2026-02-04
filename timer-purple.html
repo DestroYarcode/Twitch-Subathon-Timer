@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Timer - Purple Glow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: transparent !important; }
+        .timer {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 72px;
+            font-weight: 700;
+            color: #bf5fff;
+            text-shadow: 
+                0 0 10px #9147ff,
+                0 0 30px #9147ff,
+                0 0 50px #6441a5;
+        }
+    </style>
+</head>
+<body>
+    <div class="timer" id="timer">00:00:00</div>
+    <script>
+        async function update() {
+            try {
+                const res = await fetch('http://localhost:8080/api/timer');
+                const data = await res.json();
+                const s = data.totalSeconds;
+                const h = Math.floor(s / 3600);
+                const m = Math.floor((s % 3600) / 60);
+                const sec = s % 60;
+                document.getElementById('timer').textContent = 
+                    `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            } catch(e) {}
+        }
+        setInterval(update, 500);
+        update();
+    </script>
+</body>
+</html>

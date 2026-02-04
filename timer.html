@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subathon Timer - OBS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: transparent !important;
+            font-family: 'Orbitron', monospace;
+            overflow: hidden;
+        }
+
+        .timer-container {
+            display: inline-block;
+            padding: 10px 20px;
+        }
+
+        .timer-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-value {
+            font-size: 5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 
+                0 0 10px rgba(0, 245, 212, 0.8),
+                0 0 30px rgba(0, 245, 212, 0.6),
+                0 0 50px rgba(0, 245, 212, 0.4),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            line-height: 1;
+        }
+
+        .time-separator {
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: #00f5d4;
+            text-shadow: 
+                0 0 10px rgba(0, 245, 212, 0.8),
+                0 0 30px rgba(0, 245, 212, 0.6),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin: 0 5px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .time-value.adding {
+            animation: add-time 0.5s ease-out;
+        }
+
+        @keyframes add-time {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #00f5d4; text-shadow: 0 0 40px #00f5d4; }
+            100% { transform: scale(1); }
+        }
+
+        .timer-container.warning .time-value {
+            color: #ff006e !important;
+            text-shadow: 
+                0 0 10px rgba(255, 0, 110, 0.8),
+                0 0 30px rgba(255, 0, 110, 0.6),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            animation: warning 0.5s ease-in-out infinite;
+        }
+
+        .timer-container.warning .time-separator {
+            color: #ff006e;
+        }
+
+        @keyframes warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Goal erreicht - goldene Farbe */
+        .timer-container.goal-reached .time-value {
+            color: #ffd700 !important;
+            text-shadow: 
+                0 0 10px rgba(255, 215, 0, 0.8),
+                0 0 30px rgba(255, 215, 0, 0.6),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .timer-container.goal-reached .time-separator {
+            color: #ffd700;
+        }
+
+        .sub-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: 900;
+            color: #00f5d4;
+            text-shadow: 0 0 30px #00f5d4, 0 0 60px #7b2cbf;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sub-popup.show {
+            animation: popup 1.5s ease-out forwards;
+        }
+
+        @keyframes popup {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container" id="container">
+        <div class="timer-display">
+            <span class="time-value" id="hours">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-value" id="minutes">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-value" id="seconds">00</span>
+        </div>
+    </div>
+    <div class="sub-popup" id="popup">+0:00</div>
+
+    <script>
+        const API = 'http://localhost:8080/api';
+        let lastSeconds = 0;
+        let lastSubs = 0;
+
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+        const container = document.getElementById('container');
+        const popup = document.getElementById('popup');
+
+        function formatTime(s) {
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            return `${m}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function updateDisplay(data) {
+            const s = data.totalSeconds;
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+
+            hoursEl.textContent = h.toString().padStart(2, '0');
+            minutesEl.textContent = m.toString().padStart(2, '0');
+            secondsEl.textContent = sec.toString().padStart(2, '0');
+
+            // Warnung bei wenig Zeit
+            if (s <= 300 && s > 0) {
+                container.classList.add('warning');
+            } else {
+                container.classList.remove('warning');
+            }
+
+            // Goal erreicht - spezielle Anzeige
+            if (data.goalReached) {
+                container.classList.add('goal-reached');
+            } else {
+                container.classList.remove('goal-reached');
+            }
+
+            // Zeit wurde hinzugefügt?
+            if (s > lastSeconds + 5) {
+                const added = s - lastSeconds;
+                showPopup(added);
+                document.querySelectorAll('.time-value').forEach(el => {
+                    el.classList.add('adding');
+                    setTimeout(() => el.classList.remove('adding'), 500);
+                });
+            }
+
+            lastSeconds = s;
+        }
+
+        function showPopup(seconds) {
+            popup.textContent = '+' + formatTime(seconds);
+            popup.classList.remove('show');
+            void popup.offsetWidth; // Reflow
+            popup.classList.add('show');
+        }
+
+        async function fetchTimer() {
+            try {
+                const res = await fetch(API + '/timer');
+                const data = await res.json();
+                updateDisplay(data);
+            } catch (e) {
+                console.error('Verbindungsfehler:', e);
+            }
+        }
+
+        // Alle 500ms updaten für smooth countdown
+        setInterval(fetchTimer, 500);
+        fetchTimer();
+
+        console.log('🎮 Timer Display geladen - verbindet sich mit Server...');
+    </script>
+</body>
+</html>

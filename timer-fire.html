@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Timer - Fire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: transparent !important; }
+        .timer {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 80px;
+            background: linear-gradient(180deg, #fff 0%, #ff6b00 40%, #ff0000 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 10px #ff4400) drop-shadow(0 0 20px #ff2200);
+        }
+    </style>
+</head>
+<body>
+    <div class="timer" id="timer">00:00:00</div>
+    <script>
+        async function update() {
+            try {
+                const res = await fetch('http://localhost:8080/api/timer');
+                const data = await res.json();
+                const s = data.totalSeconds;
+                const h = Math.floor(s / 3600);
+                const m = Math.floor((s % 3600) / 60);
+                const sec = s % 60;
+                document.getElementById('timer').textContent = 
+                    `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            } catch(e) {}
+        }
+        setInterval(update, 500);
+        update();
+    </script>
+</body>
+</html>

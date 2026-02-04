@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subathon Timer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent !important;
+            font-family: 'Orbitron', monospace;
+            overflow: hidden;
+        }
+
+        .timer-container {
+            display: inline-block;
+            padding: 10px 20px;
+        }
+
+        .timer-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-value {
+            font-size: 5rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 
+                0 0 10px rgba(0, 245, 212, 0.8),
+                0 0 30px rgba(0, 245, 212, 0.6),
+                0 0 50px rgba(0, 245, 212, 0.4),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            line-height: 1;
+        }
+
+        .time-separator {
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: #00f5d4;
+            text-shadow: 
+                0 0 10px rgba(0, 245, 212, 0.8),
+                0 0 30px rgba(0, 245, 212, 0.6),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin: 0 5px;
+            animation: separator-pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes separator-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Animation beim Zeit hinzufügen */
+        .time-value.adding {
+            animation: time-add 0.5s ease-out;
+        }
+
+        @keyframes time-add {
+            0% { transform: scale(1); color: #fff; }
+            50% { transform: scale(1.2); color: #00f5d4; text-shadow: 0 0 30px #00f5d4, 0 0 60px #00f5d4; }
+            100% { transform: scale(1); color: #fff; }
+        }
+
+        /* Warnung bei wenig Zeit */
+        .timer-container.warning .time-value {
+            color: #ff006e !important;
+            text-shadow: 
+                0 0 10px rgba(255, 0, 110, 0.8),
+                0 0 30px rgba(255, 0, 110, 0.6),
+                0 0 50px rgba(255, 0, 110, 0.4),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+            animation: warning-pulse 0.5s ease-in-out infinite;
+        }
+
+        .timer-container.warning .time-separator {
+            color: #ff006e;
+            text-shadow: 
+                0 0 10px rgba(255, 0, 110, 0.8),
+                0 0 30px rgba(255, 0, 110, 0.6),
+                2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes warning-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Sub Popup Animation */
+        .sub-animation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+        }
+
+        .sub-animation.active {
+            animation: sub-burst 1.5s ease-out forwards;
+        }
+
+        @keyframes sub-burst {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+
+        .popup-text {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #00f5d4;
+            text-shadow: 
+                0 0 20px #00f5d4,
+                0 0 40px #00f5d4,
+                0 0 60px #7b2cbf,
+                3px 3px 6px rgba(0, 0, 0, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="timer-container" id="timer-container">
+        <div class="timer-display">
+            <span class="time-value" id="hours">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-value" id="minutes">00</span>
+            <span class="time-separator">:</span>
+            <span class="time-value" id="seconds">00</span>
+        </div>
+    </div>
+
+    <div class="sub-animation" id="sub-animation">
+        <span class="popup-text">+<span id="popup-time">0:00</span></span>
+    </div>
+
+    <script src="tmi.min.js"></script>
+    <script>
+        // ============ TIMER ============
+        let totalSeconds = 0;
+        let isRunning = false;
+        let interval = null;
+        let totalSubs = 0;
+        let totalTimeAdded = 0;
+        const warningThreshold = 300; // 5 Minuten
+
+        const hoursEl = document.getElementById('hours');
+        const minutesEl = document.getElementById('minutes');
+        const secondsEl = document.getElementById('seconds');
+        const timerContainer = document.getElementById('timer-container');
+
+        function updateDisplay() {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+
+            hoursEl.textContent = h.toString().padStart(2, '0');
+            minutesEl.textContent = m.toString().padStart(2, '0');
+            secondsEl.textContent = s.toString().padStart(2, '0');
+
+            // Warnung bei wenig Zeit
+            if (totalSeconds <= warningThreshold && totalSeconds > 0) {
+                timerContainer.classList.add('warning');
+            } else {
+                timerContainer.classList.remove('warning');
+            }
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function addTime(seconds) {
+            totalSeconds += seconds;
+            totalTimeAdded += seconds;
+            updateDisplay();
+            saveState();
+            animateTimeAdd();
+            showPopup(seconds);
+            console.log(`➕ ${formatTime(seconds)} hinzugefügt! Total: ${formatTime(totalSeconds)}`);
+        }
+
+        function animateTimeAdd() {
+            document.querySelectorAll('.time-value').forEach(el => {
+                el.classList.add('adding');
+                setTimeout(() => el.classList.remove('adding'), 500);
+            });
+        }
+
+        function showPopup(seconds) {
+            const popup = document.getElementById('sub-animation');
+            document.getElementById('popup-time').textContent = formatTime(seconds);
+            popup.classList.add('active');
+            setTimeout(() => popup.classList.remove('active'), 1500);
+        }
+
+        function tick() {
+            if (totalSeconds > 0) {
+                totalSeconds--;
+                updateDisplay();
+                if (totalSeconds % 10 === 0) saveState();
+            } else {
+                stopTimer();
+            }
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            interval = setInterval(tick, 1000);
+            saveState();
+        }
+
+        function stopTimer() {
+            isRunning = false;
+            clearInterval(interval);
+            saveState();
+        }
+
+        function saveState() {
+            localStorage.setItem('subathonTimer', JSON.stringify({
+                totalSeconds, isRunning, totalSubs, totalTimeAdded, savedAt: Date.now()
+            }));
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('subathonTimer');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    if (state.isRunning && state.savedAt) {
+                        const elapsed = Math.floor((Date.now() - state.savedAt) / 1000);
+                        state.totalSeconds = Math.max(0, state.totalSeconds - elapsed);
+                    }
+                    totalSeconds = state.totalSeconds || 0;
+                    totalSubs = state.totalSubs || 0;
+                    totalTimeAdded = state.totalTimeAdded || 0;
+                    updateDisplay();
+                    if (state.isRunning) startTimer();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // ============ TWITCH ============
+        function loadConfig() {
+            const saved = localStorage.getItem('subathonConfig');
+            return saved ? JSON.parse(saved) : {
+                channel: '',
+                timePerSub: 60,
+                timePerSubTier2: 120,
+                timePerSubTier3: 300,
+                timePerGiftSub: 60,
+                timePerBits: 6,
+                bitsThreshold: 100
+            };
+        }
+
+        function connectTwitch() {
+            const config = loadConfig();
+            if (!config.channel) {
+                console.log('⚠️ Kein Kanal konfiguriert - öffne control.html');
+                return;
+            }
+
+            console.log(`🔌 Verbinde mit #${config.channel}...`);
+
+            const client = new tmi.Client({
+                connection: { secure: true, reconnect: true },
+                channels: [config.channel]
+            });
+
+            function getTimeForTier(tier) {
+                if (tier === 2) return config.timePerSubTier2;
+                if (tier === 3) return config.timePerSubTier3;
+                return config.timePerSub;
+            }
+
+            function getTier(plan) {
+                if (plan === '2000') return 2;
+                if (plan === '3000') return 3;
+                return 1;
+            }
+
+            // Sub Events
+            client.on('subscription', (channel, username) => {
+                console.log(`🎉 SUB: ${username}`);
+                totalSubs++;
+                addTime(config.timePerSub);
+            });
+
+            client.on('resub', (channel, username, months, message, userstate, methods) => {
+                const tier = getTier(methods.plan);
+                console.log(`🔄 RESUB: ${username} (Tier ${tier})`);
+                totalSubs++;
+                addTime(getTimeForTier(tier));
+            });
+
+            client.on('subgift', (channel, username, streakMonths, recipient, methods) => {
+                const tier = getTier(methods.plan);
+                console.log(`🎁 GIFT: ${username} → ${recipient} (Tier ${tier})`);
+                totalSubs++;
+                addTime(getTimeForTier(tier));
+            });
+
+            client.on('submysterygift', (channel, username, numOfSubs, methods) => {
+                // Einzelne gifts werden durch subgift getriggert
+                console.log(`🎁 COMMUNITY GIFT: ${username} x${numOfSubs}`);
+            });
+
+            client.on('cheer', (channel, userstate, message) => {
+                const bits = parseInt(userstate.bits);
+                if (bits >= config.bitsThreshold && config.timePerBits > 0) {
+                    const timeToAdd = Math.floor(bits / 100) * config.timePerBits;
+                    console.log(`💎 BITS: ${userstate.username} - ${bits} Bits`);
+                    addTime(timeToAdd);
+                }
+            });
+
+            client.on('connected', () => {
+                console.log(`✅ Verbunden mit #${config.channel}`);
+            });
+
+            client.connect().catch(err => console.error('❌ Fehler:', err));
+        }
+
+        // ============ URL PARAMETER ============
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                channel: params.get('channel') || '',
+                time: parseInt(params.get('time')) || 0,
+                t1: parseInt(params.get('t1')) || 60,      // Zeit pro Tier 1 Sub
+                t2: parseInt(params.get('t2')) || 120,     // Zeit pro Tier 2 Sub
+                t3: parseInt(params.get('t3')) || 300,     // Zeit pro Tier 3 Sub
+                autostart: params.has('autostart')
+            };
+        }
+
+        // ============ INIT ============
+        const urlParams = getUrlParams();
+        
+        // Wenn Zeit per URL gesetzt, diese verwenden
+        if (urlParams.time > 0) {
+            totalSeconds = urlParams.time;
+            updateDisplay();
+            console.log(`⏱️ Zeit per URL gesetzt: ${formatTime(urlParams.time)}`);
+        } else {
+            loadState();
+        }
+
+        // Wenn Kanal per URL, Config überschreiben
+        if (urlParams.channel) {
+            const config = loadConfig();
+            config.channel = urlParams.channel;
+            config.timePerSub = urlParams.t1;
+            config.timePerSubTier2 = urlParams.t2;
+            config.timePerSubTier3 = urlParams.t3;
+            localStorage.setItem('subathonConfig', JSON.stringify(config));
+            console.log(`📺 Kanal per URL: ${urlParams.channel}`);
+        }
+
+        connectTwitch();
+
+        // Autostart
+        if (urlParams.autostart || urlParams.time > 0) {
+            startTimer();
+            console.log('▶️ Timer automatisch gestartet');
+        }
+
+        // Sync mit localStorage (für lokales Testen)
+        setInterval(() => {
+            const saved = localStorage.getItem('subathonTimer');
+            if (saved) {
+                const state = JSON.parse(saved);
+                if (Math.abs(state.totalSeconds - totalSeconds) > 2) {
+                    totalSeconds = state.totalSeconds;
+                    if (state.isRunning && !isRunning) startTimer();
+                    if (!state.isRunning && isRunning) stopTimer();
+                    updateDisplay();
+                }
+            }
+        }, 1000);
+
+        console.log('🚀 Subathon Timer geladen');
+        console.log('💡 URL-Parameter: ?channel=NAME&time=SEKUNDEN&t1=60&t2=120&t3=300&autostart');
+    </script>
+</body>
+</html>

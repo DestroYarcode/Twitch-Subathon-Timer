@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subathon Timer - Kontrollzentrum</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #00f5d4;
+            --secondary: #7b2cbf;
+            --accent: #ff006e;
+            --dark: #0a0a0f;
+            --card: rgba(15, 15, 25, 0.95);
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f23 100%);
+            font-family: 'Rajdhani', sans-serif;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: var(--card);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            border-radius: 15px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .card-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 245, 212, 0.2);
+        }
+
+        .timer-big {
+            font-family: 'Orbitron', monospace;
+            font-size: 3.5rem;
+            text-align: center;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+            margin: 20px 0;
+        }
+
+        .timer-big.warning { color: var(--accent); }
+
+        .status {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+        }
+
+        .status-dot.running { background: #00ff88; animation: blink 1s infinite; }
+        .status-dot.paused { background: #ffaa00; }
+        .status-dot.connected { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+        .status-dot.disconnected { background: #ff4444; animation: blink 0.5s infinite; }
+        .status-dot.reconnecting { background: #ffaa00; animation: blink 0.3s infinite; }
+        .status-dot.error { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #00c4a7); color: #000; }
+        .btn-secondary { background: linear-gradient(135deg, var(--secondary), #9b4ed8); color: #fff; }
+        .btn-danger { background: linear-gradient(135deg, var(--accent), #cc0058); color: #fff; }
+        .btn-sm { padding: 10px 16px; font-size: 0.9rem; }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3); }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .time-btn {
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 245, 212, 0.3);
+            color: #fff;
+        }
+
+        .time-btn:hover { background: rgba(0, 245, 212, 0.2); border-color: var(--primary); }
+
+        .form-group { margin-bottom: 15px; }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(123, 44, 191, 0.4);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-row input { flex: 1; }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(123, 44, 191, 0.3);
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .stat-label { font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
+
+        .obs-url {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: var(--primary);
+            word-break: break-all;
+            margin: 10px 0;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: var(--primary);
+            color: #000;
+            border-radius: 10px;
+            font-weight: 600;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: #ff4444; color: #fff; }
+        .toast.warning { background: #ffaa00; color: #000; }
+
+        .divider { height: 1px; background: rgba(123, 44, 191, 0.3); margin: 15px 0; }
+
+        /* Sub Liste */
+        .sub-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .sub-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: rgba(123, 44, 191, 0.15);
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .sub-entry.gift {
+            border-left-color: #ff69b4;
+        }
+
+        .sub-entry.gifted {
+            border-left-color: #ffd700;
+        }
+
+        .sub-entry.prime {
+            border-left-color: #6441a5;
+        }
+
+        .sub-info {
+            flex: 1;
+        }
+
+        .sub-name {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .sub-details {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 2px;
+        }
+
+        .sub-type {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #000;
+            font-weight: 600;
+        }
+
+        .sub-type.gift {
+            background: #ff69b4;
+            color: #fff;
+        }
+
+        .sub-type.gifted {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .sub-type.prime {
+            background: linear-gradient(135deg, #6441a5, #9147ff);
+            color: #fff;
+        }
+
+        .sub-entry.bits {
+            border-left-color: #9146ff;
+        }
+
+        .sub-type.bits {
+            background: linear-gradient(135deg, #9146ff, #6441a5);
+            color: #fff;
+        }
+
+        .sub-time {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-left: 10px;
+        }
+
+        .sub-empty {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            padding: 20px;
+        }
+
+        .sub-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sub-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .sub-list::-webkit-scrollbar-thumb {
+            background: var(--secondary);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⏱️ SUBATHON TIMER</h1>
+        </header>
+
+        <div class="grid">
+            <!-- Timer Kontrolle -->
+            <div class="card">
+                <div class="card-title">TIMER</div>
+                
+                <div class="timer-big" id="timer">00:00:00</div>
+                
+                <div class="status">
+                    <span class="status-badge">
+                        <span class="status-dot" id="status-dot"></span>
+                        <span id="status-text">Lädt...</span>
+                    </span>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-primary" onclick="startTimer()">▶ START</button>
+                    <button class="btn-secondary" onclick="pauseTimer()">⏸ PAUSE</button>
+                    <button class="btn-danger" onclick="resetTimer()">↺ RESET</button>
+                </div>
+                <div style="margin-top:10px;text-align:center">
+                    <button class="btn-sm" onclick="fullReset()" style="background:#333;color:#ff4444;border:1px solid #ff4444;font-size:0.75rem">🗑️ KOMPLETT ZURÜCKSETZEN</button>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-title" style="font-size:0.85rem;margin-bottom:10px">⏱️ ZEIT SETZEN</div>
+                <div class="time-grid">
+                    <button class="time-btn" onclick="setTime(1800)">30 Min</button>
+                    <button class="time-btn" onclick="setTime(3600)">1 Std</button>
+                    <button class="time-btn" onclick="setTime(7200)">2 Std</button>
+                    <button class="time-btn" onclick="setTime(14400)">4 Std</button>
+                    <button class="time-btn" onclick="setTime(28800)">8 Std</button>
+                    <button class="time-btn" onclick="setTime(43200)">12 Std</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Manuell (Std : Min : Sek)</label>
+                    <div class="input-row">
+                        <input type="number" id="h" placeholder="0" min="0">
+                        <input type="number" id="m" placeholder="0" min="0" max="59">
+                        <input type="number" id="s" placeholder="0" min="0" max="59">
+                    </div>
+                </div>
+                <button class="btn-secondary" onclick="setCustomTime()" style="width:100%">Zeit setzen</button>
+
+                <div class="divider"></div>
+
+                <div class="card-title" style="font-size:0.85rem;margin-bottom:10px">➕ ZEIT ADDIEREN</div>
+                <div class="time-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <button class="time-btn" onclick="addTime(60)">+1 Min</button>
+                    <button class="time-btn" onclick="addTime(300)">+5 Min</button>
+                    <button class="time-btn" onclick="addTime(600)">+10 Min</button>
+                    <button class="time-btn" onclick="addTime(3600)">+60 Min</button>
+                </div>
+
+                <div class="stats">
+                    <div>
+                        <div class="stat-value" id="subs">0</div>
+                        <div class="stat-label">SUBS</div>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="added">+0:00</div>
+                        <div class="stat-label">HINZUGEFÜGT</div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+                <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+                    LETZTE SUBS
+                    <button class="btn-sm" onclick="resetSubList()" style="background:#333;color:#ff4444;border:1px solid #ff4444;font-size:0.65rem;padding:4px 8px">🗑️ Liste leeren</button>
+                </div>
+                <div class="sub-list" id="sub-list">
+                    <div class="sub-empty">Noch keine Subs...</div>
+                </div>
+
+                <div class="divider"></div>
+                <div class="card-title">💎 LETZTE BITS</div>
+                <div class="sub-list" id="bits-list">
+                    <div class="sub-empty">Noch keine Bits...</div>
+                </div>
+            </div>
+
+            <!-- Twitch & OBS -->
+            <div class="card">
+                <div class="card-title">TWITCH VERBINDUNG</div>
+
+                <div class="status" style="margin-bottom:15px">
+                    <span class="status-badge">
+                        <span class="status-dot" id="twitch-dot"></span>
+                        <span id="twitch-status">Nicht verbunden</span>
+                    </span>
+                </div>
+
+                <div class="form-group">
+                    <label>Twitch Kanal</label>
+                    <input type="text" id="channel" placeholder="kanalname">
+                </div>
+
+                <button class="btn-primary" onclick="saveConfig()" style="width:100%">Verbinden & Speichern</button>
+
+                <div class="divider"></div>
+
+                <div class="card-title">ZEIT PRO EVENT</div>
+
+                <div class="form-group">
+                    <label>Tier 1 Sub (Sekunden)</label>
+                    <input type="number" id="t1" value="60" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Tier 2 Sub (Sekunden)</label>
+                    <input type="number" id="t2" value="120" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Tier 3 Sub (Sekunden)</label>
+                    <input type="number" id="t3" value="300" min="0">
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-title">BITS</div>
+                <div class="form-group">
+                    <label>Bits für 60 Sekunden</label>
+                    <input type="number" id="bits-per-minute" value="500" min="1">
+                </div>
+                <div id="bits-info" style="padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.85rem;margin-bottom:10px">
+                    <span style="color:var(--primary)">💎 Bits erhalten:</span> <span id="total-bits">0</span>
+                    <br><span style="color:rgba(255,255,255,0.6)">= <span id="bits-time">+0:00</span> Zeit</span>
+                </div>
+
+                <button class="btn-secondary" onclick="saveTimeConfig()" style="width:100%">⏱️ Zeit-Einstellungen speichern</button>
+
+                <div class="divider"></div>
+
+                <div class="card-title">SUBATHON START</div>
+                <p style="color:rgba(255,255,255,0.6);font-size:0.85rem;margin-bottom:10px">
+                    Wann startet der Subathon? (Für Anzeige/Statistik)
+                </p>
+                <div class="form-group">
+                    <label>Startdatum & Uhrzeit</label>
+                    <input type="datetime-local" id="start-datetime">
+                </div>
+                <div class="btn-row">
+                    <button class="btn-primary btn-sm" onclick="setStartDate()">Start setzen</button>
+                    <button class="btn-danger btn-sm" onclick="clearStartDate()">Start entfernen</button>
+                </div>
+                <div id="start-status" style="margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.85rem;display:none">
+                    <span id="start-text"></span>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-title">SUB-RECHNER</div>
+                <p style="color:rgba(255,255,255,0.6);font-size:0.85rem;margin-bottom:10px">
+                    Formel: <strong style="color:var(--primary)">Basis + Sub-Zeit - verstrichene Zeit</strong>
+                </p>
+                <div class="form-group">
+                    <label>Basiszeit (Stunden)</label>
+                    <input type="number" id="base-hours" value="24" min="0" placeholder="24">
+                </div>
+                <div class="form-group">
+                    <label>Aktuelle Subscriber-Anzahl</label>
+                    <input type="number" id="sub-count" placeholder="z.B. 500" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Davon Tier 2 Subs</label>
+                    <input type="number" id="sub-count-t2" placeholder="0" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Davon Tier 3 Subs</label>
+                    <input type="number" id="sub-count-t3" placeholder="0" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>💎 Bits erhalten</label>
+                    <input type="number" id="calc-bits" placeholder="z.B. 5000" min="0" value="0">
+                </div>
+                <button class="btn-primary" onclick="calculateSubTime()" style="width:100%">🧮 Berechnen</button>
+                <div id="calc-result" style="margin-top:10px;padding:15px;background:rgba(0,245,212,0.1);border:1px solid var(--primary);border-radius:8px;display:none">
+                    <div style="font-size:0.85rem;color:rgba(255,255,255,0.7)">Berechnete Zeit:</div>
+                    <div id="calc-time" style="font-family:'Orbitron',monospace;font-size:1.5rem;color:var(--primary);margin:5px 0"></div>
+                    <button class="btn-secondary btn-sm" onclick="applyCalculatedTime()" style="width:100%;margin-top:10px">✓ Zeit übernehmen</button>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-title">GOAL / MAX DATUM</div>
+                <p style="color:rgba(255,255,255,0.6);font-size:0.85rem;margin-bottom:10px">
+                    Timer kann nicht über dieses Datum hinausgehen:
+                </p>
+                <div class="form-group">
+                    <label>Enddatum & Uhrzeit</label>
+                    <input type="datetime-local" id="goal-datetime">
+                </div>
+                <div class="btn-row">
+                    <button class="btn-primary btn-sm" onclick="setGoal()">Goal setzen</button>
+                    <button class="btn-danger btn-sm" onclick="clearGoal()">Goal entfernen</button>
+                </div>
+                <div id="goal-status" style="margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.85rem;display:none">
+                    <span id="goal-text"></span>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="card-title">OBS BROWSER SOURCE</div>
+                <p style="color:rgba(255,255,255,0.6);font-size:0.9rem;margin-bottom:10px">Diese URL in OBS einfügen:</p>
+                <div class="obs-url" id="obs-url">http://localhost:8080/timer-clean.html</div>
+                <button class="btn-secondary btn-sm" onclick="copyUrl()" style="width:100%">📋 URL kopieren</button>
+
+                <div class="divider"></div>
+
+                <div class="card-title">TEST</div>
+                <div class="btn-row">
+                    <button class="btn-secondary btn-sm" onclick="testSub(1)">Test T1</button>
+                    <button class="btn-secondary btn-sm" onclick="testSub(2)">Test T2</button>
+                    <button class="btn-secondary btn-sm" onclick="testSub(3)">Test T3</button>
+                    <button class="btn-secondary btn-sm" onclick="testPrime()" style="background:linear-gradient(135deg,#6441a5,#9147ff)">👑 Prime</button>
+                </div>
+                <div class="btn-row" style="margin-top:8px">
+                    <button class="btn-secondary btn-sm" onclick="testGiftBomb()" style="background:linear-gradient(135deg,#ff69b4,#ff1493)">🎁 Test Gift Bomb</button>
+                    <button class="btn-secondary btn-sm" onclick="testBits()" style="background:linear-gradient(135deg,#9146ff,#6441a5)">💎 Test Bits</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Gespeichert!</div>
+
+    <script src="tmi.min.js"></script>
+    <script>
+        const API = '/api';
+        let twitchClient = null;
+        let currentData = {};
+        let serverConnected = true;
+        let twitchConnected = false;
+        let reconnectAttempts = 0;
+        let configDirty = false;  // Wenn true, Config-Felder nicht überschreiben
+        let lastServerStatusChange = 0;  // Cooldown für Status-Meldungen
+        let connectionFailCount = 0;  // Zählt fehlgeschlagene Verbindungen
+        let connectionSuccessCount = 0;  // Zählt erfolgreiche Verbindungen
+        let goalInputDirty = false;  // Wenn true, Goal-Input nicht überschreiben
+
+        // ============ API ============
+        async function api(endpoint, method = 'GET', body = null) {
+            const opts = { method };
+            if (body) {
+                opts.headers = { 'Content-Type': 'application/json' };
+                opts.body = JSON.stringify(body);
+            }
+            const res = await fetch(API + endpoint, opts);
+            return res.json();
+        }
+
+        async function fetchData() {
+            const now = Date.now();
+            const cooldown = 10000;  // 10 Sekunden Cooldown zwischen Status-Meldungen
+            const minSuccessForReconnect = 3;  // Mind. 3 erfolgreiche Requests für "wieder verbunden"
+            const minFailForDisconnect = 3;  // Mind. 3 fehlgeschlagene Requests für "nicht erreichbar"
+            
+            try {
+                currentData = await api('/timer');
+                connectionSuccessCount++;
+                connectionFailCount = 0;  // Reset fail counter
+                
+                // Nur "wieder verbunden" wenn vorher disconnected UND mehrere Erfolge UND Cooldown
+                if (!serverConnected && connectionSuccessCount >= minSuccessForReconnect && (now - lastServerStatusChange) > cooldown) {
+                    serverConnected = true;
+                    lastServerStatusChange = now;
+                    toast('Server wieder verbunden!', 'success');
+                } else if (!serverConnected && connectionSuccessCount >= minSuccessForReconnect) {
+                    serverConnected = true;  // Update state silently
+                }
+                updateUI();
+            } catch (e) {
+                connectionFailCount++;
+                connectionSuccessCount = 0;  // Reset success counter
+                
+                // Nur "nicht erreichbar" wenn vorher connected UND mehrere Fehler UND Cooldown
+                if (serverConnected && connectionFailCount >= minFailForDisconnect && (now - lastServerStatusChange) > cooldown) {
+                    serverConnected = false;
+                    lastServerStatusChange = now;
+                    toast('Server nicht erreichbar!', 'error');
+                } else if (serverConnected && connectionFailCount >= minFailForDisconnect) {
+                    serverConnected = false;  // Update state silently
+                }
+                
+                if (!serverConnected) {
+                    document.getElementById('status-text').textContent = 'Server nicht erreichbar!';
+                    document.getElementById('status-dot').className = 'status-dot error';
+                }
+            }
+        }
+
+        function updateUI() {
+            const d = currentData;
+            const s = d.totalSeconds || 0;
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            timerEl.classList.toggle('warning', s <= 300 && s > 0);
+
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            if (d.isRunning) {
+                dot.className = 'status-dot running';
+                text.textContent = 'Läuft';
+            } else {
+                dot.className = 'status-dot paused';
+                text.textContent = s > 0 ? 'Pausiert' : 'Gestoppt';
+            }
+
+            document.getElementById('subs').textContent = d.totalSubs || 0;
+            document.getElementById('added').textContent = '+' + formatTime(d.totalTimeAdded || 0);
+
+            // Config - nur updaten wenn nicht "dirty" (vom User geändert)
+            if (d.config && !configDirty) {
+                document.getElementById('channel').value = d.config.channel || '';
+                document.getElementById('t1').value = d.config.timePerSub || 60;
+                document.getElementById('t2').value = d.config.timePerSubTier2 || 120;
+                document.getElementById('t3').value = d.config.timePerSubTier3 || 300;
+                document.getElementById('bits-per-minute').value = d.config.bitsPerMinute || 500;
+            }
+            if (d.config) {
+                updateTwitchStatus(d.config.channel);
+            }
+            
+            // Bits-Info aktualisieren
+            const totalBits = d.totalBits || 0;
+            const bitsPerMin = d.config?.bitsPerMinute || 500;
+            const bitsTimeSeconds = Math.floor((totalBits / bitsPerMin) * 60);
+            document.getElementById('total-bits').textContent = totalBits.toLocaleString('de-DE');
+            document.getElementById('bits-time').textContent = '+' + formatTime(bitsTimeSeconds);
+
+            // Goal
+            updateGoalUI(d);
+
+            // Start-Datum
+            updateStartUI(d);
+
+            // Sub-Liste
+            updateSubList(d.subList || []);
+        }
+
+        function updateSubList(subs) {
+            const subListEl = document.getElementById('sub-list');
+            const bitsListEl = document.getElementById('bits-list');
+            
+            if (!subs || subs.length === 0) {
+                subListEl.innerHTML = '<div class="sub-empty">Noch keine Subs...</div>';
+                bitsListEl.innerHTML = '<div class="sub-empty">Noch keine Bits...</div>';
+                return;
+            }
+
+            // Subs und Bits trennen
+            const subsOnly = subs.filter(s => s.type !== 'bits');
+            const bitsOnly = subs.filter(s => s.type === 'bits');
+
+            // SUB-LISTE
+            if (subsOnly.length === 0) {
+                subListEl.innerHTML = '<div class="sub-empty">Noch keine Subs...</div>';
+            } else {
+                let subHtml = '';
+                for (const sub of subsOnly.slice(0, 20)) {
+                    const time = new Date(sub.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                    let typeClass = '';
+                    let typeText = '';
+                    let details = '';
+
+                    if (sub.type === 'gift' || sub.giftCount > 0) {
+                        typeClass = 'gift';
+                        typeText = sub.giftCount > 1 ? `${sub.giftCount}x GIFT` : 'GIFT';
+                        details = sub.giftCount > 1 
+                            ? `Hat ${sub.giftCount} Subs verschenkt` 
+                            : `Gift an ${sub.recipient || 'Community'}`;
+                    } else if (sub.type === 'gifted') {
+                        typeClass = 'gifted';
+                        typeText = 'ERHALTEN';
+                        details = 'Sub geschenkt bekommen';
+                    } else if (sub.type === 'prime' || sub.isPrime) {
+                        typeClass = 'prime';
+                        typeText = 'PRIME';
+                        details = sub.months ? `Prime Resub (${sub.months} Monate)` : 'Prime Sub';
+                    } else if (sub.type === 'resub') {
+                        typeText = `T${sub.tier} RESUB`;
+                        details = sub.months ? `Resub (${sub.months} Monate)` : 'Resub';
+                    } else {
+                        typeText = `T${sub.tier} SUB`;
+                        details = 'Neuer Sub';
+                    }
+
+                    subHtml += `
+                        <div class="sub-entry ${typeClass}">
+                            <div class="sub-info">
+                                <div class="sub-name">${sub.username}</div>
+                                <div class="sub-details">${time} · ${details}</div>
+                            </div>
+                            <span class="sub-type ${typeClass}">${typeText}</span>
+                            <span class="sub-time">+${formatTime(sub.timeAdded)}</span>
+                        </div>
+                    `;
+                }
+                subListEl.innerHTML = subHtml;
+            }
+
+            // BITS-LISTE
+            if (bitsOnly.length === 0) {
+                bitsListEl.innerHTML = '<div class="sub-empty">Noch keine Bits...</div>';
+            } else {
+                let bitsHtml = '';
+                for (const bit of bitsOnly.slice(0, 15)) {
+                    const time = new Date(bit.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                    bitsHtml += `
+                        <div class="sub-entry bits">
+                            <div class="sub-info">
+                                <div class="sub-name">${bit.username}</div>
+                                <div class="sub-details">${time} · Cheer</div>
+                            </div>
+                            <span class="sub-type bits">${bit.bits.toLocaleString('de-DE')} 💎</span>
+                            <span class="sub-time">+${formatTime(bit.timeAdded)}</span>
+                        </div>
+                    `;
+                }
+                bitsListEl.innerHTML = bitsHtml;
+            }
+        }
+
+        function formatTime(s) {
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            return `${m}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        // ============ CONTROLS ============
+        async function startTimer() {
+            await api('/start', 'POST');
+            toast('Timer gestartet!');
+            fetchData();
+        }
+
+        async function pauseTimer() {
+            await api('/pause', 'POST');
+            toast('Timer pausiert!');
+            fetchData();
+        }
+
+        async function resetTimer() {
+            if (confirm('Timer wirklich zurücksetzen?')) {
+                await api('/reset', 'POST');
+                toast('Timer zurückgesetzt!');
+                fetchData();
+            }
+        }
+
+        async function fullReset() {
+            if (confirm('⚠️ ALLES ZURÜCKSETZEN?\n\nDas löscht:\n- Timer\n- Alle Subs\n- Sub-Liste\n- Goal\n- Statistiken\n\nBist du sicher?')) {
+                if (confirm('Wirklich ALLES löschen? Das kann nicht rückgängig gemacht werden!')) {
+                    await api('/fullreset', 'POST');
+                    toast('Alles zurückgesetzt!');
+                    fetchData();
+                }
+            }
+        }
+
+        async function resetSubList() {
+            if (confirm('Sub-Statistiken zurücksetzen?\n\nDas löscht:\n- Sub-Anzahl\n- Hinzugefügte Zeit\n- Bits\n- Sub/Bits-Liste\n\n(Timer bleibt erhalten!)')) {
+                await api('/resetlist', 'POST');
+                toast('Statistiken zurückgesetzt!');
+                fetchData();
+            }
+        }
+
+        async function setTime(seconds) {
+            await api('/settime', 'POST', { seconds });
+            toast('Zeit gesetzt!');
+            fetchData();
+        }
+
+        async function setCustomTime() {
+            const h = parseInt(document.getElementById('h').value) || 0;
+            const m = parseInt(document.getElementById('m').value) || 0;
+            const s = parseInt(document.getElementById('s').value) || 0;
+            await setTime(h * 3600 + m * 60 + s);
+        }
+
+        async function addTime(seconds) {
+            await api('/addtime', 'POST', { seconds, reason: 'manual' });
+            toast(`+${formatTime(seconds)} hinzugefügt!`);
+            fetchData();
+        }
+
+        // ============ CONFIG ============
+        async function saveConfig() {
+            const config = {
+                channel: document.getElementById('channel').value.toLowerCase().trim(),
+                timePerSub: parseInt(document.getElementById('t1').value) || 60,
+                timePerSubTier2: parseInt(document.getElementById('t2').value) || 120,
+                timePerSubTier3: parseInt(document.getElementById('t3').value) || 300
+            };
+            await api('/timer', 'POST', { config });
+            configDirty = false;  // Reset dirty flag
+            toast('Einstellungen gespeichert!');
+            connectTwitch(config.channel);
+            fetchData();
+        }
+
+        async function saveTimeConfig() {
+            const config = {
+                timePerSub: parseInt(document.getElementById('t1').value) || 60,
+                timePerSubTier2: parseInt(document.getElementById('t2').value) || 120,
+                timePerSubTier3: parseInt(document.getElementById('t3').value) || 300,
+                bitsPerMinute: parseInt(document.getElementById('bits-per-minute').value) || 500
+            };
+            await api('/timer', 'POST', { config });
+            configDirty = false;  // Reset dirty flag
+            toast('Zeit-Einstellungen gespeichert!');
+            fetchData();
+        }
+
+        // Config-Felder als "dirty" markieren wenn geändert
+        function markConfigDirty() {
+            configDirty = true;
+        }
+
+        // ============ START DATE ============
+        async function setStartDate() {
+            const input = document.getElementById('start-datetime').value;
+            if (!input) {
+                toast('Bitte Datum auswählen!', 'warning');
+                return;
+            }
+            const timestamp = new Date(input).getTime();
+            await api('/timer', 'POST', { startTimestamp: timestamp });
+            toast('Startdatum gesetzt!');
+            fetchData();
+        }
+
+        async function clearStartDate() {
+            await api('/timer', 'POST', { startTimestamp: null });
+            toast('Startdatum entfernt!');
+            fetchData();
+        }
+
+        function updateStartUI(data) {
+            const statusEl = document.getElementById('start-status');
+            const textEl = document.getElementById('start-text');
+            const input = document.getElementById('start-datetime');
+
+            if (data.startTimestamp) {
+                const startDate = new Date(data.startTimestamp);
+                statusEl.style.display = 'block';
+                
+                if (document.activeElement !== input) {
+                    const localDate = new Date(data.startTimestamp - startDate.getTimezoneOffset() * 60000);
+                    input.value = localDate.toISOString().slice(0, 16);
+                }
+
+                const now = Date.now();
+                if (now < data.startTimestamp) {
+                    const diff = data.startTimestamp - now;
+                    const days = Math.floor(diff / 86400000);
+                    const hours = Math.floor((diff % 86400000) / 3600000);
+                    const mins = Math.floor((diff % 3600000) / 60000);
+                    const secs = Math.floor((diff % 60000) / 1000);
+                    textEl.innerHTML = '⏳ Start: ' + startDate.toLocaleString('de-DE') + 
+                        '<br>Noch ' + days + ' Tage, ' + hours + ' Stunden, ' + mins + ' Minuten, ' + secs + ' Sekunden';
+                    statusEl.style.borderColor = '#ffaa00';
+                } else {
+                    const diff = now - data.startTimestamp;
+                    const days = Math.floor(diff / 86400000);
+                    const hours = Math.floor((diff % 86400000) / 3600000);
+                    const mins = Math.floor((diff % 3600000) / 60000);
+                    const secs = Math.floor((diff % 60000) / 1000);
+                    textEl.innerHTML = '🟢 Gestartet: ' + startDate.toLocaleString('de-DE') + 
+                        '<br>Läuft seit ' + days + ' Tagen, ' + hours + ' Stunden, ' + mins + ' Minuten, ' + secs + ' Sekunden';
+                    statusEl.style.borderColor = 'var(--primary)';
+                }
+            } else {
+                statusEl.style.display = 'none';
+                if (document.activeElement !== input) {
+                    input.value = '';
+                }
+            }
+        }
+
+        // ============ SUB CALCULATOR ============
+        let calculatedSeconds = 0;
+
+        function calculateSubTime() {
+            const totalSubs = parseInt(document.getElementById('sub-count').value) || 0;
+            const t2Subs = parseInt(document.getElementById('sub-count-t2').value) || 0;
+            const t3Subs = parseInt(document.getElementById('sub-count-t3').value) || 0;
+            const totalBits = parseInt(document.getElementById('calc-bits').value) || 0;
+            
+            if (totalSubs <= 0 && totalBits <= 0) {
+                toast('Bitte Subscriber-Anzahl oder Bits eingeben!', 'warning');
+                return;
+            }
+
+            // T1 Subs = Total - T2 - T3
+            const t1Subs = Math.max(0, totalSubs - t2Subs - t3Subs);
+            
+            const t1Time = parseInt(document.getElementById('t1').value) || 60;
+            const t2Time = parseInt(document.getElementById('t2').value) || 120;
+            const t3Time = parseInt(document.getElementById('t3').value) || 300;
+            const bitsPerMin = parseInt(document.getElementById('bits-per-minute').value) || 500;
+            
+            // Basiszeit aus Input (Standard: 24 Stunden)
+            const baseHours = parseFloat(document.getElementById('base-hours').value) || 24;
+            const baseSeconds = Math.floor(baseHours * 60 * 60);
+            
+            // Sub-Zeit berechnen
+            const subSeconds = (t1Subs * t1Time) + (t2Subs * t2Time) + (t3Subs * t3Time);
+            
+            // Bits-Zeit berechnen
+            const bitsSeconds = Math.floor((totalBits / bitsPerMin) * 60);
+            
+            // Verstrichene Zeit seit Start berechnen
+            let elapsedSeconds = 0;
+            if (currentData.startTimestamp) {
+                const now = Date.now();
+                if (now > currentData.startTimestamp) {
+                    elapsedSeconds = Math.floor((now - currentData.startTimestamp) / 1000);
+                }
+            }
+            
+            // Gesamtzeit: Basis + Sub-Zeit + Bits-Zeit - verstrichene Zeit
+            calculatedSeconds = Math.max(0, baseSeconds + subSeconds + bitsSeconds - elapsedSeconds);
+            
+            const h = Math.floor(calculatedSeconds / 3600);
+            const m = Math.floor((calculatedSeconds % 3600) / 60);
+            const s = calculatedSeconds % 60;
+            
+            document.getElementById('calc-result').style.display = 'block';
+            
+            // Details aufschlüsseln
+            const subH = Math.floor(subSeconds / 3600);
+            const subM = Math.floor((subSeconds % 3600) / 60);
+            const bitsH = Math.floor(bitsSeconds / 3600);
+            const bitsM = Math.floor((bitsSeconds % 3600) / 60);
+            const bitsS = bitsSeconds % 60;
+            const elapsedH = Math.floor(elapsedSeconds / 3600);
+            const elapsedM = Math.floor((elapsedSeconds % 3600) / 60);
+            
+            let details = `<div style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-top:8px;line-height:1.6">`;
+            details += `📦 Basis: ${baseHours}h<br>`;
+            details += `➕ Subs: +${subH}h ${subM}m <span style="font-size:0.7rem">(${t1Subs}×T1 + ${t2Subs}×T2 + ${t3Subs}×T3)</span><br>`;
+            if (totalBits > 0) {
+                details += `💎 Bits: +${bitsH}h ${bitsM}m ${bitsS}s <span style="font-size:0.7rem">(${totalBits.toLocaleString('de-DE')} Bits)</span><br>`;
+            }
+            if (elapsedSeconds > 0) {
+                details += `➖ Vergangen: -${elapsedH}h ${elapsedM}m`;
+            } else {
+                details += `⏳ Noch nicht gestartet`;
+            }
+            details += `</div>`;
+            
+            // Errechnetes Ende berechnen
+            const endDate = new Date(Date.now() + (calculatedSeconds * 1000));
+            const endDateStr = endDate.toLocaleDateString('de-DE', { 
+                weekday: 'long', 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            });
+            const endTimeStr = endDate.toLocaleTimeString('de-DE', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            let endInfo = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,245,212,0.3)">`;
+            endInfo += `<div style="font-size:0.8rem;color:rgba(255,255,255,0.6)">🏁 Errechnetes Ende:</div>`;
+            endInfo += `<div style="font-family:'Orbitron',monospace;font-size:1.1rem;color:var(--primary);margin-top:4px">`;
+            endInfo += `${endDateStr}<br>${endTimeStr} Uhr</div>`;
+            endInfo += `</div>`;
+            
+            document.getElementById('calc-time').innerHTML = 
+                `<span style="font-size:2rem">${h}h ${m}m ${s}s</span>` + details + endInfo;
+            
+            toast('Berechnet: ' + h + 'h ' + m + 'm');
+        }
+
+        async function applyCalculatedTime() {
+            if (calculatedSeconds <= 0) {
+                toast('Erst berechnen!', 'warning');
+                return;
+            }
+            await api('/settime', 'POST', { seconds: calculatedSeconds });
+            toast('Zeit übernommen!');
+            fetchData();
+        }
+
+        // ============ TWITCH ============
+        function updateTwitchStatus(channel) {
+            const dot = document.getElementById('twitch-dot');
+            const text = document.getElementById('twitch-status');
+            
+            // Nicht überschreiben wenn gerade reconnecting oder disconnected
+            if (dot.classList.contains('reconnecting') || dot.classList.contains('disconnected')) {
+                return;
+            }
+            
+            if (channel && twitchConnected) {
+                dot.className = 'status-dot connected';
+                text.textContent = 'Verbunden: ' + channel;
+            } else if (channel && twitchClient) {
+                dot.className = 'status-dot paused';
+                text.textContent = 'Verbinde...';
+            } else if (channel) {
+                dot.className = 'status-dot paused';
+                text.textContent = 'Konfiguriert: ' + channel;
+            } else {
+                dot.className = 'status-dot';
+                text.textContent = 'Nicht konfiguriert';
+            }
+        }
+
+        function connectTwitch(channel) {
+            if (!channel) return;
+            if (twitchClient) {
+                twitchClient.disconnect();
+            }
+
+            console.log('🔌 Verbinde mit #' + channel);
+
+            twitchClient = new tmi.Client({
+                connection: { secure: true, reconnect: true },
+                channels: [channel]
+            });
+
+            // Tracke Gift-Empfänger (um Doppelzählung zu vermeiden)
+            let giftedUsers = {};
+
+            twitchClient.on('connected', () => {
+                console.log('✅ Verbunden mit #' + channel);
+                twitchConnected = true;
+                reconnectAttempts = 0;
+                updateTwitchStatus(channel);
+                toast('Mit Twitch verbunden!', 'success');
+            });
+
+            twitchClient.on('disconnected', (reason) => {
+                console.log('❌ Twitch getrennt:', reason);
+                twitchConnected = false;
+                const dot = document.getElementById('twitch-dot');
+                const text = document.getElementById('twitch-status');
+                dot.className = 'status-dot disconnected';
+                text.textContent = 'Verbindung getrennt!';
+                toast('Twitch-Verbindung getrennt!', 'error');
+            });
+
+            twitchClient.on('reconnect', () => {
+                reconnectAttempts++;
+                console.log('🔄 Twitch Reconnect Versuch #' + reconnectAttempts);
+                const dot = document.getElementById('twitch-dot');
+                const text = document.getElementById('twitch-status');
+                dot.className = 'status-dot reconnecting';
+                text.textContent = 'Reconnecting... (#' + reconnectAttempts + ')';
+                if (reconnectAttempts === 1) {
+                    toast('Twitch: Verbinde neu...', 'warning');
+                }
+            });
+
+            twitchClient.on('subscription', (ch, username, method, message, userstate) => {
+                // Prüfen ob das ein Gift war (dann ignorieren - wurde bereits bei subgift gezählt)
+                if (giftedUsers[username.toLowerCase()]) {
+                    console.log('⏭️ SKIP (Gift): ' + username);
+                    return;
+                }
+                
+                const isPrime = method && (method.prime || method.plan === 'Prime');
+                console.log('🎉 SUB: ' + username + (isPrime ? ' (Prime)' : ''));
+                const time = parseInt(document.getElementById('t1').value) || 60;
+                api('/addtime', 'POST', { 
+                    seconds: time, 
+                    reason: 'sub',
+                    subInfo: {
+                        username: username,
+                        type: isPrime ? 'prime' : 'sub',
+                        tier: 1,
+                        giftCount: 0,
+                        isPrime: isPrime
+                    }
+                });
+                fetchData();
+            });
+
+            twitchClient.on('resub', (ch, username, months, msg, userstate, methods) => {
+                // Prüfen ob das ein Gift war (dann ignorieren - wurde bereits bei subgift gezählt)
+                if (giftedUsers[username.toLowerCase()]) {
+                    console.log('⏭️ SKIP (Gift): ' + username);
+                    return;
+                }
+                
+                const isPrime = methods && (methods.prime || methods.plan === 'Prime');
+                const tier = methods.plan === '2000' ? 2 : methods.plan === '3000' ? 3 : 1;
+                console.log('🔄 RESUB: ' + username + ' (' + (isPrime ? 'Prime' : 'Tier ' + tier) + ', ' + months + ' Monate)');
+                const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
+                const time = parseInt(document.getElementById(timeKey).value) || 60;
+                api('/addtime', 'POST', { 
+                    seconds: time, 
+                    reason: 'sub',
+                    subInfo: {
+                        username: username,
+                        type: isPrime ? 'prime' : 'resub',
+                        tier: isPrime ? 1 : tier,
+                        giftCount: 0,
+                        isPrime: isPrime,
+                        months: months
+                    }
+                });
+                fetchData();
+            });
+
+            // ============ GIFT-SYSTEM (ULTRA-STABIL für MEHRERE GLEICHZEITIGE BOMBS) ============
+            // Unterstützt: Mehrere Gifter gleichzeitig (z.B. 3 Leute giften je 50 Subs = 150 Events gemischt)
+            // Jeder Gifter hat seinen eigenen Batch, identifiziert durch username (lowercase)
+            
+            let giftBombProcessed = {};  // Gifter -> { count, timestamp }
+            let giftBatches = {};        // Gifter -> { gifts: [], timer: null, tier, name, firstGiftTime }
+            const SINGLE_GIFT_WAIT = 20000;  // 20 Sekunden für EINZELNE Gifts
+            const BOMB_CHECK_INTERVAL = 5000;  // Alle 5 Sekunden prüfen ob Bomb kam
+            const MAX_WAIT_TIME = 120000;  // Max 2 Minuten warten, dann Batch verwerfen
+
+            function getActiveBatchCount() {
+                return Object.keys(giftBatches).length;
+            }
+
+            function logBatchStatus() {
+                const batches = Object.entries(giftBatches);
+                if (batches.length > 0) {
+                    console.log('📊 AKTIVE BATCHES: ' + batches.length);
+                    batches.forEach(([user, batch]) => {
+                        console.log('   └─ ' + batch.name + ': ' + batch.gifts.length + ' Gifts');
+                    });
+                }
+            }
+
+            function processBatch(gifterLower, gifterName) {
+                const batch = giftBatches[gifterLower];
+                if (!batch || batch.gifts.length === 0) return;
+                
+                // Prüfen ob eine Bomb für diesen User registriert wurde
+                if (giftBombProcessed[gifterLower] && (Date.now() - giftBombProcessed[gifterLower].timestamp) < 300000) {
+                    console.log('✅ [' + gifterName + '] BATCH VERWORFEN: ' + batch.gifts.length + ' Gifts (Bomb wurde gezählt)');
+                    delete giftBatches[gifterLower];
+                    logBatchStatus();
+                    return;
+                }
+                
+                // Timeout-Check: Wenn zu lange gewartet, Batch verwerfen (Bomb kam nie an)
+                const waitTime = Date.now() - batch.firstGiftTime;
+                if (waitTime > MAX_WAIT_TIME && batch.gifts.length > 1) {
+                    console.warn('⚠️ [' + gifterName + '] TIMEOUT: ' + batch.gifts.length + ' Gifts nach ' + Math.floor(waitTime/1000) + 's verworfen (Bomb kam nicht an!)');
+                    delete giftBatches[gifterLower];
+                    logBatchStatus();
+                    return;
+                }
+                
+                // WICHTIG: Wenn mehr als 1 Gift → ist DEFINITIV eine Bomb → NICHT zählen, weiter warten!
+                if (batch.gifts.length > 1) {
+                    const waitedSec = Math.floor(waitTime / 1000);
+                    console.log('⏳ [' + gifterName + '] WARTE AUF BOMB: ' + batch.gifts.length + ' Gifts (seit ' + waitedSec + 's)');
+                    // Timer neu starten, weiter warten
+                    batch.timer = setTimeout(() => {
+                        processBatch(gifterLower, gifterName);
+                    }, BOMB_CHECK_INTERVAL);
+                    return;
+                }
+                
+                // Nur 1 Gift und nach 20s keine weiteren → echtes Einzel-Gift
+                const tier = batch.tier;
+                const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
+                const timePerSub = parseInt(document.getElementById(timeKey).value) || 60;
+                
+                console.log('🎁 [' + gifterName + '] EINZEL-GIFT BESTÄTIGT: → ' + batch.gifts[0] + ' = +' + timePerSub + 's');
+                
+                api('/addtime', 'POST', { 
+                    seconds: timePerSub, 
+                    reason: 'sub',
+                    subInfo: {
+                        username: gifterName,
+                        type: 'gift',
+                        tier: tier,
+                        giftCount: 1,
+                        recipient: batch.gifts[0]
+                    }
+                });
+                fetchData();
+                
+                delete giftBatches[gifterLower];
+                logBatchStatus();
+            }
+
+            twitchClient.on('submysterygift', (ch, username, numOfSubs, methods, userstate) => {
+                const tier = methods.plan === '2000' ? 2 : methods.plan === '3000' ? 3 : 1;
+                const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
+                const timePerSub = parseInt(document.getElementById(timeKey).value) || 60;
+                const totalTime = timePerSub * numOfSubs;
+                const gifterLower = username.toLowerCase();
+                
+                console.log('💣 [' + username + '] GIFT BOMB: x' + numOfSubs + ' = +' + totalTime + 's');
+                
+                // Als verarbeitet markieren (5 Minuten gültig)
+                giftBombProcessed[gifterLower] = { count: numOfSubs, timestamp: Date.now() };
+                
+                // Batch-Timer stoppen und Batch löschen (wird durch Bomb abgedeckt)
+                if (giftBatches[gifterLower]) {
+                    if (giftBatches[gifterLower].timer) {
+                        clearTimeout(giftBatches[gifterLower].timer);
+                    }
+                    console.log('🗑️ [' + username + '] Batch gelöscht: ' + giftBatches[gifterLower].gifts.length + ' Gifts');
+                    delete giftBatches[gifterLower];
+                }
+                
+                // Zeit addieren
+                api('/addtime', 'POST', { 
+                    seconds: totalTime, 
+                    reason: 'sub',
+                    subInfo: {
+                        username: username,
+                        type: 'gift',
+                        tier: tier,
+                        giftCount: numOfSubs,
+                        recipient: 'Community'
+                    }
+                });
+                fetchData();
+                
+                logBatchStatus();
+            });
+
+            twitchClient.on('subgift', (ch, username, streak, recipient, methods) => {
+                const tier = methods.plan === '2000' ? 2 : methods.plan === '3000' ? 3 : 1;
+                const gifterLower = username.toLowerCase();
+                
+                // Empfänger merken
+                giftedUsers[recipient.toLowerCase()] = Date.now();
+                
+                // Bereits durch Bomb abgedeckt? (5 Minuten Fenster)
+                if (giftBombProcessed[gifterLower] && (Date.now() - giftBombProcessed[gifterLower].timestamp) < 300000) {
+                    console.log('⏭️ [' + username + '] SKIP: → ' + recipient + ' (Bomb bereits gezählt)');
+                    return;
+                }
+                
+                // Zum Batch hinzufügen (oder neuen erstellen)
+                const isNewBatch = !giftBatches[gifterLower];
+                if (isNewBatch) {
+                    giftBatches[gifterLower] = { 
+                        gifts: [], 
+                        timer: null, 
+                        tier: tier, 
+                        name: username,
+                        firstGiftTime: Date.now()
+                    };
+                    if (getActiveBatchCount() > 1) {
+                        console.log('🔀 MEHRERE GIFTER AKTIV: ' + getActiveBatchCount() + ' Batches');
+                    }
+                }
+                giftBatches[gifterLower].gifts.push(recipient);
+                
+                const batchCount = giftBatches[gifterLower].gifts.length;
+                
+                // Timer management
+                if (giftBatches[gifterLower].timer) {
+                    clearTimeout(giftBatches[gifterLower].timer);
+                }
+                
+                if (batchCount === 1) {
+                    // Erstes Gift - könnte einzeln sein, warte 20s
+                    console.log('📦 [' + username + '] GIFT #1: → ' + recipient + ' (warte 20s...)');
+                    giftBatches[gifterLower].timer = setTimeout(() => {
+                        processBatch(gifterLower, username);
+                    }, SINGLE_GIFT_WAIT);
+                } else {
+                    // Mehr als 1 Gift = definitiv Bomb, warte auf submysterygift
+                    if (batchCount === 2) {
+                        console.log('📦 [' + username + '] GIFT #2: → ' + recipient + ' (BOMB ERKANNT! Warte auf submysterygift...)');
+                    } else if (batchCount % 10 === 0 || batchCount <= 5) {
+                        console.log('📦 [' + username + '] GIFT #' + batchCount + ': → ' + recipient);
+                    }
+                    // Starte Check-Timer
+                    giftBatches[gifterLower].timer = setTimeout(() => {
+                        processBatch(gifterLower, username);
+                    }, BOMB_CHECK_INTERVAL);
+                }
+            });
+            
+            // ============ BITS (CHEERS) ============
+            twitchClient.on('cheer', (ch, userstate, message) => {
+                const bits = parseInt(userstate.bits) || 0;
+                const username = userstate['display-name'] || userstate.username || 'Anonym';
+                
+                if (bits <= 0) return;
+                
+                const bitsPerMin = parseInt(document.getElementById('bits-per-minute').value) || 500;
+                const secondsPerBit = 60 / bitsPerMin;
+                const timeToAdd = Math.floor(bits * secondsPerBit);
+                
+                console.log('💎 CHEER: ' + username + ' - ' + bits + ' Bits = +' + timeToAdd + 's');
+                
+                api('/addtime', 'POST', { 
+                    seconds: timeToAdd, 
+                    reason: 'bits',
+                    subInfo: {
+                        username: username,
+                        type: 'bits',
+                        tier: 1,
+                        giftCount: 0,
+                        bits: bits
+                    }
+                });
+                
+                // Bits zum Server-Total addieren
+                api('/addbits', 'POST', { bits: bits });
+                
+                fetchData();
+            });
+            
+            // Cleanup alle 2 Minuten
+            setInterval(() => {
+                const now = Date.now();
+                for (const user in giftBombProcessed) {
+                    if (now - giftBombProcessed[user].timestamp > 300000) {
+                        delete giftBombProcessed[user];
+                    }
+                }
+                for (const user in giftedUsers) {
+                    if (now - giftedUsers[user] > 300000) {
+                        delete giftedUsers[user];
+                    }
+                }
+            }, 120000);
+
+            twitchClient.connect().catch(e => {
+                console.error('❌ Twitch Fehler:', e);
+                twitchConnected = false;
+                const dot = document.getElementById('twitch-dot');
+                const text = document.getElementById('twitch-status');
+                dot.className = 'status-dot error';
+                text.textContent = 'Verbindungsfehler!';
+                toast('Twitch Verbindungsfehler!', 'error');
+            });
+        }
+
+        function testSub(tier) {
+            const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
+            const time = parseInt(document.getElementById(timeKey).value) || 60;
+            const testNames = ['TestUser', 'CoolViewer', 'SubMaster', 'TwitchFan', 'StreamLover'];
+            const randomName = testNames[Math.floor(Math.random() * testNames.length)] + Math.floor(Math.random() * 100);
+            
+            api('/addtime', 'POST', { 
+                seconds: time, 
+                reason: 'sub',
+                subInfo: {
+                    username: randomName,
+                    type: tier > 1 ? 'resub' : 'sub',
+                    tier: tier,
+                    giftCount: 0
+                }
+            });
+            toast('Test Sub (Tier ' + tier + ') +' + formatTime(time));
+            fetchData();
+        }
+
+        function testGiftBomb() {
+            const time = parseInt(document.getElementById('t1').value) || 60;
+            const giftCount = Math.floor(Math.random() * 10) + 5;  // 5-15 Gifts
+            const gifterName = 'GenerousGifter' + Math.floor(Math.random() * 100);
+            
+            api('/addtime', 'POST', { 
+                seconds: time * giftCount, 
+                reason: 'sub',
+                subInfo: {
+                    username: gifterName,
+                    type: 'gift',
+                    tier: 1,
+                    giftCount: giftCount,
+                    recipient: 'Community'
+                }
+            });
+            toast('Test Gift Bomb: ' + giftCount + 'x Subs!');
+            fetchData();
+        }
+
+        function testPrime() {
+            const time = parseInt(document.getElementById('t1').value) || 60;
+            const testNames = ['PrimeGamer', 'AmazonViewer', 'PrimeMember', 'TwitchPrime'];
+            const randomName = testNames[Math.floor(Math.random() * testNames.length)] + Math.floor(Math.random() * 100);
+            const months = Math.floor(Math.random() * 24) + 1;
+            
+            api('/addtime', 'POST', { 
+                seconds: time, 
+                reason: 'sub',
+                subInfo: {
+                    username: randomName,
+                    type: 'prime',
+                    tier: 1,
+                    giftCount: 0,
+                    isPrime: true,
+                    months: months
+                }
+            });
+            toast('Test Prime Sub +' + formatTime(time));
+            fetchData();
+        }
+
+        function testBits() {
+            const testNames = ['BitKing', 'CheerMaster', 'BitsLover', 'DiamondFan'];
+            const randomName = testNames[Math.floor(Math.random() * testNames.length)] + Math.floor(Math.random() * 100);
+            const bitAmounts = [100, 250, 500, 1000, 2500, 5000];
+            const bits = bitAmounts[Math.floor(Math.random() * bitAmounts.length)];
+            
+            const bitsPerMin = parseInt(document.getElementById('bits-per-minute').value) || 500;
+            const secondsPerBit = 60 / bitsPerMin;
+            const timeToAdd = Math.floor(bits * secondsPerBit);
+            
+            api('/addtime', 'POST', { 
+                seconds: timeToAdd, 
+                reason: 'bits',
+                subInfo: {
+                    username: randomName,
+                    type: 'bits',
+                    tier: 1,
+                    giftCount: 0,
+                    bits: bits
+                }
+            });
+            api('/addbits', 'POST', { bits: bits });
+            toast('Test Bits: ' + bits + ' 💎 +' + formatTime(timeToAdd));
+            fetchData();
+        }
+
+        // ============ GOAL ============
+        async function setGoal() {
+            const input = document.getElementById('goal-datetime').value;
+            if (!input) {
+                toast('Bitte Datum auswählen!', 'warning');
+                return;
+            }
+            const timestamp = new Date(input).getTime();
+            await api('/setgoal', 'POST', { timestamp });
+            goalInputDirty = false;  // Reset dirty flag
+            toast('Goal gesetzt!');
+            fetchData();
+        }
+
+        async function clearGoal() {
+            await api('/setgoal', 'POST', { timestamp: null });
+            goalInputDirty = false;  // Reset dirty flag
+            toast('Goal entfernt!');
+            fetchData();
+        }
+
+        function updateGoalUI(data) {
+            const statusEl = document.getElementById('goal-status');
+            const textEl = document.getElementById('goal-text');
+            const input = document.getElementById('goal-datetime');
+
+            if (data.goalTimestamp) {
+                const goalDate = new Date(data.goalTimestamp);
+                statusEl.style.display = 'block';
+                
+                // Input vorbelegen - nur wenn nicht fokussiert und nicht dirty
+                if (document.activeElement !== input && !goalInputDirty) {
+                    const localDate = new Date(data.goalTimestamp - goalDate.getTimezoneOffset() * 60000);
+                    input.value = localDate.toISOString().slice(0, 16);
+                }
+
+                if (data.goalReached) {
+                    textEl.innerHTML = '<span style="color:#ff006e">⚠ GOAL ERREICHT!</span> ' + 
+                        goalDate.toLocaleString('de-DE');
+                    statusEl.style.borderColor = '#ff006e';
+                } else {
+                    const maxAdd = Math.floor(data.maxAddable || 0);
+                    const h = Math.floor(maxAdd / 3600);
+                    const m = Math.floor((maxAdd % 3600) / 60);
+                    textEl.innerHTML = 'Goal: ' + goalDate.toLocaleString('de-DE') + 
+                        '<br>Noch addierbar: ' + h + 'h ' + m + 'm';
+                    statusEl.style.borderColor = 'rgba(0,245,212,0.3)';
+                }
+            } else {
+                statusEl.style.display = 'none';
+                // Nur leeren wenn nicht fokussiert und nicht dirty
+                if (document.activeElement !== input && !goalInputDirty) {
+                    input.value = '';
+                }
+            }
+        }
+
+        // ============ UTILS ============
+        function copyUrl() {
+            navigator.clipboard.writeText(document.getElementById('obs-url').textContent);
+            toast('URL kopiert!');
+        }
+
+        function toast(msg, type = 'success') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast';  // Reset classes
+            if (type === 'error') t.classList.add('error');
+            else if (type === 'warning') t.classList.add('warning');
+            t.classList.add('show');
+            const duration = type === 'error' ? 4000 : 2000;
+            setTimeout(() => t.classList.remove('show'), duration);
+        }
+
+        // ============ INIT ============
+        fetchData();
+        setInterval(fetchData, 500);
+
+        // Config-Felder als dirty markieren bei Änderung
+        ['channel', 't1', 't2', 't3', 'bits-per-minute'].forEach(id => {
+            document.getElementById(id).addEventListener('input', markConfigDirty);
+        });
+
+        // Goal-Input als dirty markieren bei Änderung
+        document.getElementById('goal-datetime').addEventListener('input', () => {
+            goalInputDirty = true;
+        });
+
+        // Auto-connect zu Twitch wenn Kanal konfiguriert
+        setTimeout(() => {
+            const channel = document.getElementById('channel').value;
+            if (channel) connectTwitch(channel);
+        }, 1000);
+    </script>
+</body>
+</html>

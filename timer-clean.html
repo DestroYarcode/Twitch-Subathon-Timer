@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Timer - Clean White</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: transparent !important; }
+        .timer {
+            font-family: 'Inter', sans-serif;
+            font-size: 64px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 4px;
+            text-shadow: 
+                1px 1px 0 #000,
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                2px 2px 8px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="timer" id="timer">00:00:00</div>
+    <script>
+        async function update() {
+            try {
+                const res = await fetch('http://localhost:8080/api/timer');
+                const data = await res.json();
+                const s = data.totalSeconds;
+                const h = Math.floor(s / 3600);
+                const m = Math.floor((s % 3600) / 60);
+                const sec = s % 60;
+                document.getElementById('timer').textContent = 
+                    `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            } catch(e) {}
+        }
+        setInterval(update, 500);
+        update();
+    </script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Twitch Connection Test - shlorox</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0e0e10;
+            color: #fff;
+            padding: 30px;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #9147ff;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px 25px;
+            background: #1f1f23;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #666;
+        }
+        .dot.connecting { background: #ffaa00; animation: pulse 1s infinite; }
+        .dot.connected { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+        .dot.error { background: #ff4444; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        
+        #log {
+            background: #18181b;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a2e;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-time { color: #666; margin-right: 10px; }
+        .log-sub { color: #00ff88; }
+        .log-gift { color: #ff69b4; }
+        .log-bits { color: #ffaa00; }
+        .log-info { color: #9147ff; }
+        .log-chat { color: #888; }
+        
+        .info-box {
+            background: rgba(145, 71, 255, 0.2);
+            border: 1px solid #9147ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔌 Twitch Connection Test</h1>
+    
+    <div class="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Initialisiere...</span>
+    </div>
+    
+    <div class="info-box">
+        <strong>Kanal:</strong> shlorox<br>
+        <strong>Was passiert:</strong> TMI.js verbindet sich anonym mit dem Twitch-Chat und hört auf Sub-Events.
+    </div>
+    
+    <div id="log"></div>
+
+    <script src="tmi.min.js"></script>
+    <script>
+        const log = document.getElementById('log');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        
+        function addLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString('de-DE');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${message}</span>`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Status setzen
+        statusDot.className = 'dot connecting';
+        statusText.textContent = 'Verbinde mit Twitch...';
+        addLog('🔌 Starte Verbindung zu #shlorox...', 'info');
+        
+        // Prüfen ob TMI.js geladen wurde
+        if (typeof tmi === 'undefined') {
+            addLog('❌ FEHLER: TMI.js konnte nicht geladen werden!', 'info');
+            addLog('Mögliche Ursache: AdBlocker oder keine Internetverbindung', 'info');
+            statusDot.className = 'dot error';
+            statusText.textContent = 'TMI.js nicht geladen';
+        } else {
+            addLog('✅ TMI.js geladen (Version: ' + tmi.version + ')', 'info');
+        }
+
+        // TMI.js Client erstellen
+        const client = new tmi.Client({
+            options: { debug: true },  // Debug aktiviert
+            connection: {
+                secure: true,
+                reconnect: true
+            },
+            channels: ['shlorox']
+        });
+        
+        // Alle TMI Events loggen
+        client.on('connecting', (address, port) => {
+            addLog(`🔄 Verbinde zu ${address}:${port}...`, 'info');
+        });
+        
+        client.on('logon', () => {
+            addLog('🔑 Login erfolgreich!', 'info');
+        });
+        
+        client.on('join', (channel, username, self) => {
+            if (self) {
+                addLog(`📺 Channel ${channel} betreten!`, 'info');
+            }
+        });
+        
+        // Event Handlers
+        client.on('connected', (addr, port) => {
+            statusDot.className = 'dot connected';
+            statusText.textContent = 'Verbunden mit #shlorox';
+            addLog(`✅ VERBUNDEN! Server: ${addr}:${port}`, 'info');
+            addLog('👀 Warte auf Sub-Events...', 'info');
+        });
+        
+        client.on('disconnected', (reason) => {
+            statusDot.className = 'dot error';
+            statusText.textContent = 'Verbindung getrennt';
+            addLog(`❌ Getrennt: ${reason}`, 'info');
+        });
+        
+        // Sub Events
+        client.on('subscription', (channel, username, method, message, userstate) => {
+            addLog(`🎉 NEUER SUB: ${username} hat gesubbt!`, 'sub');
+        });
+        
+        client.on('resub', (channel, username, months, message, userstate, methods) => {
+            addLog(`🔄 RESUB: ${username} (${months} Monate) - "${message || 'Keine Nachricht'}"`, 'sub');
+        });
+        
+        client.on('subgift', (channel, username, streakMonths, recipient, methods, userstate) => {
+            addLog(`🎁 GIFT SUB: ${username} → ${recipient}`, 'gift');
+        });
+        
+        client.on('submysterygift', (channel, username, numOfSubs, methods, userstate) => {
+            addLog(`🎁 COMMUNITY GIFT: ${username} verschenkt ${numOfSubs} Subs!`, 'gift');
+        });
+        
+        client.on('cheer', (channel, userstate, message) => {
+            addLog(`💎 BITS: ${userstate.username} - ${userstate.bits} Bits`, 'bits');
+        });
+        
+        client.on('raided', (channel, username, viewers) => {
+            addLog(`🚀 RAID: ${username} mit ${viewers} Viewern!`, 'info');
+        });
+        
+        // Optional: Chat-Nachrichten anzeigen (zum Testen)
+        let chatCount = 0;
+        client.on('message', (channel, tags, message, self) => {
+            chatCount++;
+            // Nur jede 10. Nachricht zeigen um nicht zu spammen
+            if (chatCount % 10 === 0) {
+                addLog(`💬 Chat aktiv (${chatCount} Nachrichten empfangen)`, 'chat');
+            }
+        });
+        
+        // Verbinden
+        client.connect().catch(err => {
+            statusDot.className = 'dot error';
+            statusText.textContent = 'Verbindungsfehler';
+            addLog(`❌ Fehler: ${err}`, 'info');
+        });
+    </script>
+</body>
+</html>
