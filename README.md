@@ -2,7 +2,7 @@
 
 Ein professioneller Subathon-Timer für deinen Twitch-Stream mit automatischer Zeit-Hinzufügung bei Subs, Gift-Bombs und Bits!
 
-![Timer Preview](https://via.placeholder.com/800x400/0a0a0f/00f5d4?text=SUBATHON+TIMER)
+![Komplettansicht](./Screenshots/Komplettansicht.png)
 
 ## ✨ Features
 
@@ -53,12 +53,16 @@ http://localhost:8080/control.html
 2. Stelle die Zeit pro Sub-Tier ein
 3. Klicke "Verbinden & Speichern"
 
+![Einstellungen](./Screenshots/Einstellungen%20des%20Kanals%20und%20wie%20Events%20gerechnet%20werden%20sollen.png)
+
 ### 4. In OBS einbinden
 
 1. Füge eine neue **Browser Source** hinzu
 2. URL: `http://localhost:8080/timer-clean.html` (oder ein anderes Design)
 3. Breite: **800**, Höhe: **200**
 4. ✅ "Custom CSS" leer lassen (Hintergrund ist bereits transparent)
+
+![OBS Link und Testbuttons](./Screenshots/Link%20für%20OBS%20Timer%20anzeige%20und%20Testbuttons.png)
 
 ## 🎨 Timer-Designs
 
@@ -107,6 +111,10 @@ Beispiele:
 - **Goal-Datum** - Maximales Enddatum festlegen
 - **Sub-Liste** - Zeigt die letzten 20 Subs/Bits an
 
+![Timer und Zeiten](./Screenshots/Timer%20ansich%20und%20Zeiten%20hinzufügen.png)
+
+![Sub-Liste](./Screenshots/Subzähler%20und%20anzeige%20der%20Subscriber%20und%20der%20Cheers.png)
+
 ### Sub-Rechner
 
 Berechnet die Timer-Zeit mit der Formel:
@@ -121,6 +129,10 @@ Zeit = Basiszeit + Sub-Zeit + Bits-Zeit - verstrichene Zeit
 4. Optional: Erhaltene Bits eingeben
 5. "Berechnen" klicken
 6. Berechnete Zeit übernehmen
+
+![Sub-Rechner](./Screenshots/Subathon%20Zeit%20berechnen%20.png)
+
+![Sub-Rechner Ergebnis](./Screenshots/Subathon%20Zeit%20berechnen%20Ergebnis%20.png)
 
 ### Goal-Datum
 
