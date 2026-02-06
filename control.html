@@ -845,8 +845,9 @@
                 timePerSubTier3: parseInt(document.getElementById('t3').value) || 300
             };
             await api('/timer', 'POST', { config });
-            configDirty = false;  // Reset dirty flag
             toast('Einstellungen gespeichert!');
+            // configDirty bleibt true für 2 Sekunden damit fetchData() die Felder nicht überschreibt
+            setTimeout(() => { configDirty = false; }, 2000);
             connectTwitch(config.channel);
             fetchData();
         }
@@ -859,8 +860,9 @@
                 bitsPerMinute: parseInt(document.getElementById('bits-per-minute').value) || 500
             };
             await api('/timer', 'POST', { config });
-            configDirty = false;  // Reset dirty flag
             toast('Zeit-Einstellungen gespeichert!');
+            // configDirty bleibt true für 2 Sekunden damit fetchData() die Felder nicht überschreibt
+            setTimeout(() => { configDirty = false; }, 2000);
             fetchData();
         }
 
@@ -1117,7 +1119,8 @@
                 
                 const isPrime = method && (method.prime || method.plan === 'Prime');
                 console.log('🎉 SUB: ' + username + (isPrime ? ' (Prime)' : ''));
-                const time = parseInt(document.getElementById('t1').value) || 60;
+                // Zeit aus Server-Config lesen (nicht aus DOM - kann durch fetchData überschrieben werden)
+                const time = currentData.config?.timePerSub || 60;
                 api('/addtime', 'POST', { 
                     seconds: time, 
                     reason: 'sub',
@@ -1142,8 +1145,10 @@
                 const isPrime = methods && (methods.prime || methods.plan === 'Prime');
                 const tier = methods.plan === '2000' ? 2 : methods.plan === '3000' ? 3 : 1;
                 console.log('🔄 RESUB: ' + username + ' (' + (isPrime ? 'Prime' : 'Tier ' + tier) + ', ' + months + ' Monate)');
-                const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
-                const time = parseInt(document.getElementById(timeKey).value) || 60;
+                // Zeit aus Server-Config lesen (nicht aus DOM)
+                const time = tier === 2 ? (currentData.config?.timePerSubTier2 || 120) 
+                           : tier === 3 ? (currentData.config?.timePerSubTier3 || 300) 
+                           : (currentData.config?.timePerSub || 60);
                 api('/addtime', 'POST', { 
                     seconds: time, 
                     reason: 'sub',
@@ -1217,8 +1222,10 @@
                 
                 // Nur 1 Gift und nach 20s keine weiteren → echtes Einzel-Gift
                 const tier = batch.tier;
-                const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
-                const timePerSub = parseInt(document.getElementById(timeKey).value) || 60;
+                // Zeit aus Server-Config lesen (nicht aus DOM)
+                const timePerSub = tier === 2 ? (currentData.config?.timePerSubTier2 || 120) 
+                                 : tier === 3 ? (currentData.config?.timePerSubTier3 || 300) 
+                                 : (currentData.config?.timePerSub || 60);
                 
                 console.log('🎁 [' + gifterName + '] EINZEL-GIFT BESTÄTIGT: → ' + batch.gifts[0] + ' = +' + timePerSub + 's');
                 
@@ -1241,8 +1248,10 @@
 
             twitchClient.on('submysterygift', (ch, username, numOfSubs, methods, userstate) => {
                 const tier = methods.plan === '2000' ? 2 : methods.plan === '3000' ? 3 : 1;
-                const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
-                const timePerSub = parseInt(document.getElementById(timeKey).value) || 60;
+                // Zeit aus Server-Config lesen (nicht aus DOM)
+                const timePerSub = tier === 2 ? (currentData.config?.timePerSubTier2 || 120) 
+                                 : tier === 3 ? (currentData.config?.timePerSubTier3 || 300) 
+                                 : (currentData.config?.timePerSub || 60);
                 const totalTime = timePerSub * numOfSubs;
                 const gifterLower = username.toLowerCase();
                 
@@ -1340,7 +1349,8 @@
                 
                 if (bits <= 0) return;
                 
-                const bitsPerMin = parseInt(document.getElementById('bits-per-minute').value) || 500;
+                // Zeit aus Server-Config lesen (nicht aus DOM)
+                const bitsPerMin = currentData.config?.bitsPerMinute || 500;
                 const secondsPerBit = 60 / bitsPerMin;
                 const timeToAdd = Math.floor(bits * secondsPerBit);
                 
@@ -1391,8 +1401,10 @@
         }
 
         function testSub(tier) {
-            const timeKey = tier === 2 ? 't2' : tier === 3 ? 't3' : 't1';
-            const time = parseInt(document.getElementById(timeKey).value) || 60;
+            // Zeit aus Server-Config lesen (nicht aus DOM)
+            const time = tier === 2 ? (currentData.config?.timePerSubTier2 || 120) 
+                       : tier === 3 ? (currentData.config?.timePerSubTier3 || 300) 
+                       : (currentData.config?.timePerSub || 60);
             const testNames = ['TestUser', 'CoolViewer', 'SubMaster', 'TwitchFan', 'StreamLover'];
             const randomName = testNames[Math.floor(Math.random() * testNames.length)] + Math.floor(Math.random() * 100);
             
@@ -1411,7 +1423,8 @@
         }
 
         function testGiftBomb() {
-            const time = parseInt(document.getElementById('t1').value) || 60;
+            // Zeit aus Server-Config lesen (nicht aus DOM)
+            const time = currentData.config?.timePerSub || 60;
             const giftCount = Math.floor(Math.random() * 10) + 5;  // 5-15 Gifts
             const gifterName = 'GenerousGifter' + Math.floor(Math.random() * 100);
             
@@ -1431,7 +1444,8 @@
         }
 
         function testPrime() {
-            const time = parseInt(document.getElementById('t1').value) || 60;
+            // Zeit aus Server-Config lesen (nicht aus DOM)
+            const time = currentData.config?.timePerSub || 60;
             const testNames = ['PrimeGamer', 'AmazonViewer', 'PrimeMember', 'TwitchPrime'];
             const randomName = testNames[Math.floor(Math.random() * testNames.length)] + Math.floor(Math.random() * 100);
             const months = Math.floor(Math.random() * 24) + 1;
@@ -1458,7 +1472,8 @@
             const bitAmounts = [100, 250, 500, 1000, 2500, 5000];
             const bits = bitAmounts[Math.floor(Math.random() * bitAmounts.length)];
             
-            const bitsPerMin = parseInt(document.getElementById('bits-per-minute').value) || 500;
+            // Zeit aus Server-Config lesen (nicht aus DOM)
+            const bitsPerMin = currentData.config?.bitsPerMinute || 500;
             const secondsPerBit = 60 / bitsPerMin;
             const timeToAdd = Math.floor(bits * secondsPerBit);
             
