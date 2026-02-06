@@ -176,17 +176,31 @@ def process_queue():
                 save_data()
 
 def timer_tick():
-    """Timer countdown"""
+    """Timer countdown - einfach und zuverlässig"""
+    next_tick = time.time() + 1.0
     while True:
-        time.sleep(1)
+        now = time.time()
+        sleep_time = max(0.01, next_tick - now)
+        time.sleep(sleep_time)
+        
+        # Nächster Tick in 1 Sekunde (Drift-Korrektur eingebaut)
+        next_tick += 1.0
+        
+        # Wenn wir zu weit hinterher sind, resetten
+        if time.time() > next_tick + 0.5:
+            next_tick = time.time() + 1.0
+        
         with data_lock:
             if timer_data['isRunning'] and timer_data['totalSeconds'] > 0:
                 timer_data['totalSeconds'] -= 1
+                timer_data['lastUpdate'] = int(time.time() * 1000)
+                
                 if timer_data['totalSeconds'] <= 0:
                     timer_data['isRunning'] = False
                     print('[!] Timer abgelaufen!')
+                    save_data()
                 # Alle 10 Sekunden speichern
-                if timer_data['totalSeconds'] % 10 == 0:
+                elif timer_data['totalSeconds'] % 10 == 0:
                     save_data()
 
 class TimerHandler(http.server.SimpleHTTPRequestHandler):
@@ -225,6 +239,8 @@ class TimerHandler(http.server.SimpleHTTPRequestHandler):
                 response['queueSize'] = len(time_queue)
                 response['stats'] = stats
                 response['maxAddable'] = get_max_addable_seconds()
+                # Präziser Server-Timestamp für Client-seitige Berechnung
+                response['serverTime'] = int(time.time() * 1000)
                 self.send_json(response)
             return
         
@@ -293,6 +309,7 @@ class TimerHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/start':
             with data_lock:
                 timer_data['isRunning'] = True
+                timer_data['lastUpdate'] = int(time.time() * 1000)
                 save_data()
                 print('[>] Timer gestartet')
                 self.send_json({'success': True})
@@ -301,6 +318,7 @@ class TimerHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/pause':
             with data_lock:
                 timer_data['isRunning'] = False
+                timer_data['lastUpdate'] = int(time.time() * 1000)
                 save_data()
                 print('[||] Timer pausiert')
                 self.send_json({'success': True})
